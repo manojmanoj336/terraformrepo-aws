@@ -1,0 +1,77 @@
+name: Terraform Apply - Create S3 Bucket
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Log - Workflow Started
+        run: echo "🚀 Starting Terraform workflow for S3 bucket creation"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6
+      
+      - name: Log - Terraform Setup Complete
+        run: terraform version
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::752611434187:role/CI-Terraform-Deploy-Role
+          aws-region: us-east-1
+      
+      - name: Log - AWS Credentials Configured
+        run: echo "✅ AWS credentials configured successfully"
+
+      - name: Terraform Init
+        working-directory: ./terraform/envs/dev
+        run: |
+          echo "📦 Initializing Terraform..."
+          terraform init \
+            -backend-config="bucket=project1-terraform-state" \
+            -backend-config="key=dev/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="encrypt=true"
+          echo "✅ Terraform init completed"
+
+      - name: Terraform Validate
+        working-directory: ./terraform/envs/dev
+        run: |
+          echo "🔍 Validating Terraform configuration..."
+          terraform validate
+          echo "✅ Validation passed"
+
+      - name: Terraform Plan
+        working-directory: ./terraform/envs/dev
+        run: |
+          echo "📋 Planning Terraform changes..."
+          terraform plan -out=tfplan
+          echo "✅ Plan completed"
+
+      - name: Terraform Apply
+        working-directory: ./terraform/envs/dev
+        run: |
+          echo "🔨 Applying Terraform changes (creating S3 bucket)..."
+          terraform apply -auto-approve tfplan
+          echo "✅ Apply completed successfully"
+
+      - name: Output S3 Bucket Info
+        working-directory: ./terraform/envs/dev
+        run: |
+          echo "📊 S3 Bucket Information:"
+          echo "S3 Bucket ID: $(terraform output -raw bucket_id)"
+          echo "S3 Bucket ARN: $(terraform output -raw bucket_arn)"
+      
+      - name: Log - Workflow Completed
+        run: echo "🎉 Workflow completed successfully!"
