@@ -27,3 +27,21 @@ variable "backend_region" {
   type        = string
   default     = "us-east-1"
 }
+
+# variables used by the s3_bucket module
+variable "bucket_name" {
+  description = "Name of the S3 bucket"
+  type        = string
+}
+
+variable "force_destroy" {
+  description = "Allow bucket deletion when it contains objects"
+  type        = bool
+  default     = false
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}
